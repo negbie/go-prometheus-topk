@@ -1,6 +1,6 @@
-module github.com/riking/go-prometheus-topk
+module github.com/negbie/go-prometheus-topk
 
-go 1.13
+go 1.14
 
 require (
 	github.com/dgryski/go-sip13 v0.0.0-20190329191031-25c5027a8c7b // indirect

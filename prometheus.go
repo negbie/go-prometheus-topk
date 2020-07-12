@@ -22,7 +22,6 @@ limitations under the License.
 package topk
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 
@@ -99,7 +98,6 @@ type topkRoot struct {
 	stream    *tk.Stream
 
 	countDesc *prometheus.Desc
-	errDesc   *prometheus.Desc
 
 	variableLabels  []string
 	reportThreshold int
@@ -138,8 +136,6 @@ func NewTopK(opts TopKOpts, labelNames []string) TopK {
 
 		countDesc: prometheus.NewDesc(
 			fqName, opts.Help, varLabels, opts.ConstLabels),
-		errDesc: prometheus.NewDesc(
-			fmt.Sprintf("%s_error", fqName), opts.Help, varLabels, opts.ConstLabels),
 
 		variableLabels:  varLabels,
 		reportThreshold: opts.ReportingThreshold,
@@ -149,7 +145,6 @@ func NewTopK(opts TopKOpts, labelNames []string) TopK {
 
 func (r *topkCurry) Describe(ch chan<- *prometheus.Desc) {
 	ch <- r.root.countDesc
-	ch <- r.root.errDesc
 }
 
 var labelParseSplit = string([]byte{model.SeparatorByte})
@@ -169,8 +164,7 @@ func (r *topkCurry) Collect(ch chan<- prometheus.Metric) {
 			panic("bad label-string value in topk")
 		}
 		lvs := split[:len(r.root.variableLabels)]
-		ch <- prometheus.MustNewConstMetric(r.root.countDesc, prometheus.CounterValue, float64(e.Count), lvs...)
-		ch <- prometheus.MustNewConstMetric(r.root.errDesc, prometheus.GaugeValue, float64(-e.Error), lvs...)
+		ch <- prometheus.MustNewConstMetric(r.root.countDesc, prometheus.CounterValue, float64(e.Count-e.Error), lvs...)
 	}
 }
 

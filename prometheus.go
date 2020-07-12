@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	tk "github.com/riking/go-prometheus-topk/internal/third_party/go-topk"
+	tk "github.com/negbie/go-topk"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -90,7 +90,7 @@ type TopKOpts struct {
 	Buckets uint64
 
 	// Values under the ReportingThreshold are tracked but not exported.
-	ReportingThreshold float64
+	ReportingThreshold int
 }
 
 type topkRoot struct {
@@ -102,7 +102,7 @@ type topkRoot struct {
 	errDesc   *prometheus.Desc
 
 	variableLabels  []string
-	reportThreshold float64
+	reportThreshold int
 }
 
 type curriedLabelValue struct {
@@ -134,7 +134,7 @@ func NewTopK(opts TopKOpts, labelNames []string) TopK {
 	varLabels := append([]string(nil), labelNames...)
 
 	root := &topkRoot{
-		stream: tk.NewStream(int(opts.Buckets)),
+		stream: tk.New(int(opts.Buckets)),
 
 		countDesc: prometheus.NewDesc(
 			fqName, opts.Help, varLabels, opts.ConstLabels),
@@ -169,15 +169,15 @@ func (r *topkCurry) Collect(ch chan<- prometheus.Metric) {
 			panic("bad label-string value in topk")
 		}
 		lvs := split[:len(r.root.variableLabels)]
-		ch <- prometheus.MustNewConstMetric(r.root.countDesc, prometheus.CounterValue, e.Count, lvs...)
-		ch <- prometheus.MustNewConstMetric(r.root.errDesc, prometheus.GaugeValue, -e.Error, lvs...)
+		ch <- prometheus.MustNewConstMetric(r.root.countDesc, prometheus.CounterValue, float64(e.Count), lvs...)
+		ch <- prometheus.MustNewConstMetric(r.root.errDesc, prometheus.GaugeValue, float64(-e.Error), lvs...)
 	}
 }
 
 func (b *topkWithLabelValues) Observe(v float64) {
 	b.root.streamMtx.Lock()
 	defer b.root.streamMtx.Unlock()
-	b.root.stream.Insert(b.compositeLabel, v)
+	b.root.stream.Insert(b.compositeLabel, int(v))
 }
 
 func (b *topkWithLabelValues) Inc() {
